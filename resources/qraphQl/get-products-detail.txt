@@ -1,0 +1,38 @@
+query getBulkProductData($ids: [ID!]!) {
+  nodes(ids: $ids) {
+    ... on Product {
+      id
+      title
+      descriptionHtml
+      status
+      vendor
+      productType # Added to match your Bulk Edit UI
+      # Using standard 'images' for simplicity in bulk view
+      images(first: 1) {
+        nodes {
+          url
+          altText
+        }
+      }
+      variants(first: 100) {
+        nodes {
+          id
+          title
+          price
+          compareAtPrice
+          sku
+          barcode
+          inventoryPolicy
+          inventoryItem {
+            measurement {
+              weight {
+                value
+                unit
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

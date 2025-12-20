@@ -1,0 +1,17 @@
+query ($searchQuery: String) {
+  products(first: 40, query: $searchQuery) {
+    edges {
+      node {
+        id
+        title
+        vendor
+        productType
+        createdAt
+        featuredImage {
+          url(transform: {maxWidth: 100, maxHeight: 100})
+          altText
+        }
+      }
+    }
+  }
+}

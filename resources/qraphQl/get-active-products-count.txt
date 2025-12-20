@@ -1,0 +1,6 @@
+query {
+  productsCount(query: "status:ACTIVE") {
+    count
+    precision
+  }
+}

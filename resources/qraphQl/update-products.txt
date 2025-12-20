@@ -1,0 +1,17 @@
+mutation bulkUpdateProduct(
+  $productInput: ProductInput!, 
+  $variantInput: [ProductVariantsBulkInput!]!,
+  $productId: ID!
+) {
+  productUpdate(input: $productInput) {
+    product { id }
+    userErrors { field message }
+  }
+  productVariantsBulkUpdate(productId: $productId, variants: $variantInput) {
+    productVariants { 
+      id 
+      price 
+    }
+    userErrors { field message }
+  }
+}

@@ -1,0 +1,43 @@
+query getProductData($id: ID!) {
+  product(id: $id) {
+    id
+    title
+    descriptionHtml
+    status
+    vendor
+    media(first: 10) {
+      nodes {
+        id
+        mediaContentType
+        alt
+        ... on MediaImage {
+          image {
+            url
+          }
+        }
+      }
+    }
+    variants(first: 100) {
+      nodes {
+        id
+        title
+        price
+        compareAtPrice
+        sku
+        barcode
+        inventoryPolicy
+        image {
+          url
+        }
+        inventoryItem {
+          measurement {
+            weight {
+              value
+              unit
+            }
+          }
+        }
+      }
+    }
+  }
+}
