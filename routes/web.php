@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\GoogleMerchantController;
 
 Route::prefix('api')->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->middleware(['verify.shopify']);
@@ -13,7 +14,22 @@ Route::prefix('api')->group(function () {
     Route::post('/products/bulk-update', [ProductController::class, 'updateProducts'])->middleware(['verify.shopify']);
     // Route::post('/staged-uploads', [ProductController::class, 'generateStagedUpload'])->middleware(['verify.shopify']);
     Route::post('/product/media/delete', [ProductController::class, 'deleteMedia'])->middleware(['verify.shopify']);
+    Route::post('/product/media/upload', [ProductController::class, 'uploadMedia'])->middleware(['verify.shopify']);
+
+
+    Route::get('/google/connect', [GoogleMerchantController::class, 'connect']);
+    Route::get('/google/callback', [GoogleMerchantController::class, 'callback']);
+
+    Route::post('/metrics', function (Request $request) {
+        // navigator.sendBeacon sends a raw string, not a standard form request
+        $data = json_decode($request->getContent(), true);
+
+        \Log::info('Web Vitals Data:', $data);
+
+        return response()->noContent();
+    })->middleware(['verify.shopify']);
 });
+
 
 Route::get('/', function () {
     return view('app');

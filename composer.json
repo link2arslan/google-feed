@@ -7,6 +7,9 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "google/auth": "^1.49",
+        "google/shopping-merchant-accounts": "^1.3",
+        "google/shopping-merchant-products": "^1.3",
         "kyon147/laravel-shopify": "^25.1",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1"

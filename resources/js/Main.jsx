@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-// import { Provider } from "react-redux";
 import {
     useAppBridge,
     Provider as AppBridgeProvider,
@@ -12,10 +11,9 @@ import {
     HttpLink,
 } from "@apollo/client";
 import { authenticatedFetch as userLoggedInFetch } from "@shopify/app-bridge-utils";
-import { Frame } from "@shopify/polaris"; // Add Frame import
+import { Frame } from "@shopify/polaris";
 
 // Local imports
-// import { store } from "./store/store";
 import PolarisProvider from "./components/PolarisProvider";
 import ClientRouter from "./components/ClientRouter";
 import AppNavigation from "./components/AppNavigation";
@@ -24,14 +22,35 @@ import Products from "./pages/Products";
 import EditProduct from "./pages/EditProduct";
 import BulkEditProducts from "./components/BulkEditProducts";
 
-// Shopify App Bridge config
+// --- NEW COMPONENT: Web Vitals Listener ---
+// const WebVitalsLogger = () => {
+//     useEffect(() => {
+//         // App Bridge 4.0+ uses window.shopify
+//         if (window.shopify && window.shopify.webVitals) {
+//             console.log("Web Vitals Listener Registered");
+//             window.shopify.webVitals.onReport((metrics) => {
+//                 const body = JSON.stringify(metrics);
+//                 // Laravel endpoint - ensure this route is in api.php
+//                 const url = "/api/metrics"; 
+
+//                 if (navigator.sendBeacon) {
+//                     navigator.sendBeacon(url, body);
+//                 } else {
+//                     fetch(url, { body, method: "POST", keepalive: true });
+//                 }
+//             });
+//         }
+//     }, []);
+
+//     return null; // This component doesn't render anything
+// };
+
 const appBridgeConfig = {
     apiKey: import.meta.env.VITE_SHOPIFY_API_KEY,
     host: new URLSearchParams(window.location.search).get("host"),
     forceRedirect: true,
 };
 
-// Apollo provider using App Bridge fetch
 function AppBridgeApolloProvider({ children }) {
     const app = useAppBridge();
 
@@ -51,25 +70,23 @@ const Main = () => {
     return (
         <BrowserRouter>
             <PolarisProvider>
-                {/* <Provider store={store}> */}
-                    <AppBridgeProvider config={appBridgeConfig}>
-                        <AppBridgeApolloProvider>
-                            <Frame>
-                                {" "}
-                                {/* Add Frame here */}
-                                <AppNavigation />
-                                <ClientRouter />
-                                <Routes>
-                                    <Route path="/" element={<Home />} />
-                                    <Route path="/products" element={<Products />} />
-                                    <Route path="/products/:id/edit" element={<EditProduct />} />
-                                    <Route path="/products/bulk" element={<BulkEditProducts />} />
-                                </Routes>
-                                {/* <DebugRedux /> */}
-                            </Frame>
-                        </AppBridgeApolloProvider>
-                    </AppBridgeProvider>
-                {/* </Provider> */}
+                <AppBridgeProvider config={appBridgeConfig}>
+                    <AppBridgeApolloProvider>
+                        {/* 1. Add the Logger here */}
+                        {/* <WebVitalsLogger />  */}
+                        
+                        <Frame>
+                            <AppNavigation />
+                            <ClientRouter />
+                            <Routes>
+                                <Route path="/" element={<Home />} />
+                                <Route path="/products" element={<Products />} />
+                                <Route path="/products/:id/edit" element={<EditProduct />} />
+                                <Route path="/products/bulk" element={<BulkEditProducts />} />
+                            </Routes>
+                        </Frame>
+                    </AppBridgeApolloProvider>
+                </AppBridgeProvider>
             </PolarisProvider>
         </BrowserRouter>
     );

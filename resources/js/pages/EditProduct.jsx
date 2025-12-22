@@ -120,7 +120,7 @@ const EditProduct = () => {
         });
     };
 
-    const handleMediaUpload = (targetIndex = null) => (_files, acceptedFiles) => {
+    const handleMediaUpload_bkp = (targetIndex = null) => (_files, acceptedFiles) => {
         const newMediaItems = acceptedFiles.map((file) => ({
             id: null, // New files don't have a Shopify ID yet
             url: window.URL.createObjectURL(file),
@@ -177,6 +177,54 @@ const EditProduct = () => {
             alert("Failed to save.");
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleMediaUpload = (targetIndex = null) => async (_files, acceptedFiles) => {
+        const file = acceptedFiles[0];
+        if (!file) return;
+
+        // 1. Create a "Loading" placeholder in UI
+        const tempUrl = window.URL.createObjectURL(file);
+        const tempItem = { id: 'loading', url: tempUrl, alt: file.name };
+
+        setFormData((prev) => ({
+            ...prev,
+            media: [...prev.media, tempItem]
+        }));
+
+        // 2. Upload to Backend immediately
+        const uploadData = new FormData();
+        uploadData.append("shop", shop);
+        uploadData.append("productId", productId);
+        uploadData.append("image", file);
+
+        try {
+            const token = await fetchSessionToken({ app });
+            const response = await axios.post("/api/product/media/upload", uploadData, {
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data" 
+                },
+            });
+
+            if (response.data.success) {
+                // 3. Replace the 'loading' item with the actual Shopify data
+                const newShopifyMedia = response.data.media; // Should contain {id, url, alt}
+                
+                setFormData((prev) => ({
+                    ...prev,
+                    media: prev.media.map(item => item.id === 'loading' ? newShopifyMedia : item)
+                }));
+            }
+        } catch (error) {
+            console.error("Upload failed:", error);
+            alert("Failed to upload image to Shopify.");
+            // Remove the failed placeholder
+            setFormData((prev) => ({
+                ...prev,
+                media: prev.media.filter(item => item.id !== 'loading')
+            }));
         }
     };
 

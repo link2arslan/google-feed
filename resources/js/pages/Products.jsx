@@ -57,7 +57,7 @@ const Products = () => {
     });
 
     const resourceName = { singular: "product", plural: "products" };
-    
+
     // Resource Selection State
     const { selectedResources, allResourcesSelected, handleSelectionChange } =
         useIndexResourceState(filteredProducts);
@@ -120,12 +120,26 @@ const Products = () => {
     const rowMarkup = filteredProducts.map(
         ({ id, title, category, gmc, updated, imageUrl }, index) => {
             const { icon, tone } = getStatusContent(gmc);
+            const isSelected = selectedResources.includes(id);
+
+            // Define the navigation function
+            const handleRowClick = () => {
+                const redirect = Redirect.create(app);
+                const shopParam = encodeURIComponent(shop);
+                redirect.dispatch(
+                    Redirect.Action.APP,
+                    `/products/${id}/edit?shop=${shopParam}`
+                );
+            };
+
             return (
                 <IndexTable.Row
                     id={id}
                     key={id}
-                    selected={selectedResources.includes(id)}
+                    selected={isSelected}
                     position={index}
+                    // This makes the whole row navigate
+                    onClick={handleRowClick}
                 >
                     <IndexTable.Cell>
                         <InlineStack gap="300" blockAlign="center" wrap={false}>
@@ -206,11 +220,15 @@ const Products = () => {
                             emptyState={emptyStateMarkup}
                             promotedBulkActions={[
                                 {
-                                    content: selectedResources.length > 1 ? "Bulk edit" : "Edit",
+                                    content:
+                                        selectedResources.length > 1
+                                            ? "Bulk edit"
+                                            : "Edit",
                                     onAction: () => {
                                         const redirect = Redirect.create(app);
-                                        const shopParam = encodeURIComponent(shop);
-                                        
+                                        const shopParam =
+                                            encodeURIComponent(shop);
+
                                         if (selectedResources.length === 1) {
                                             // Redirect to single edit page
                                             redirect.dispatch(
@@ -219,8 +237,12 @@ const Products = () => {
                                             );
                                         } else {
                                             // Redirect to the Bulk Edit page with comma-separated IDs
-                                            const ids = selectedResources.join(",");
-                                            redirect.dispatch(Redirect.Action.APP, `/products/bulk?ids=${ids}&shop=${shop}`);
+                                            const ids =
+                                                selectedResources.join(",");
+                                            redirect.dispatch(
+                                                Redirect.Action.APP,
+                                                `/products/bulk?ids=${ids}&shop=${shop}`
+                                            );
                                         }
                                     },
                                 },

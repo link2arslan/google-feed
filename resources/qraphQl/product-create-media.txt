@@ -1,9 +1,13 @@
-mutation productCreateMedia($media: [CreateMediaInput!]!, $productId: ID!) {
-  productCreateMedia(media: $media, productId: $productId) {
+mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+  productCreateMedia(productId: $productId, media: $media) {
     media {
       id
       status
-      mediaContentType
+      ... on MediaImage {
+        image {
+          url
+        }
+      }
     }
     userErrors {
       field

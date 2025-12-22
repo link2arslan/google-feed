@@ -7,7 +7,8 @@
 
     <title>Laravel 9 vite with react</title>
 
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <!-- <meta name="csrf-token" content="{{ csrf_token() }}"> -->
+    <meta name="shopify-debug" content="web-vitals">
 
     @viteReactRefresh
     @vite('resources/js/app.jsx')

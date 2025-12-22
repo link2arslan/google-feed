@@ -23,6 +23,11 @@ class User extends Authenticatable implements IShopModel
         'name',
         'email',
         'password',
+        'google_merchant_id',
+        'google_access_token',
+        'google_refresh_token',
+        'google_token_expires_at',
+        'google_connected'
     ];
 
     /**

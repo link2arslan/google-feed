@@ -48,78 +48,6 @@ class ProductController extends Controller
         ]);
     }
 
-    // public function getProductDetails(Request $request)
-    // {
-    //     $shop = $request->query('shop');
-    //     $productId = $request->query('productId');
-    //     $shopModel = User::where('name', $shop)->first();
-
-    //     if (!$shopModel) {
-    //         return response()->json(['error' => 'Shop not found'], 404);
-    //     }
-
-    //     $query = file_get_contents(resource_path('qraphQl/get-product-details.txt'));
-
-    //     $variables = ['id' => "gid://shopify/Product/{$productId}"];
-    //     $response = callShopifyGraphQL($shop, $shopModel, $query, $variables);
-    //     $responseArray = $response['body']->toArray();
-
-    //     // dd($responseArray);
-    //     // Extract product data from the response
-    //     $productData = $responseArray['data']['product'] ?? null;
-
-    //     if (!$productData) {
-    //         return response()->json(['error' => 'Product not found'], 404);
-    //     }
-
-    //     // Process media images
-    //     $images = [];
-    //     if (isset($productData['media']['nodes'])) {
-    //         foreach ($productData['media']['nodes'] as $media) {
-    //             if ($media['mediaContentType'] === 'IMAGE' && isset($media['image']['url'])) {
-    //                 $images[] = [
-    //                     'url' => $media['image']['url'],
-    //                     'alt' => $media['alt'] ?? ''
-    //                 ];
-    //             }
-    //         }
-    //     }
-
-    //     // Process variants
-    //     $variants = [];
-    //     if (isset($productData['variants']['nodes'])) {
-    //         foreach ($productData['variants']['nodes'] as $variant) {
-    //             $variants[] = [
-    //                 'id' => Str::afterLast($variant['id'], '/'),
-    //                 'title' => $variant['title'],
-    //                 'price' => $variant['price'],
-    //                 'compareAtPrice' => $variant['compareAtPrice'],
-    //                 'sku' => $variant['sku'],
-    //                 'barcode' => $variant['barcode'],
-    //                 'inventoryPolicy' => $variant['inventoryPolicy'],
-    //                 'weight' => [
-    //                     'value' => $variant['inventoryItem']['measurement']['weight']['value'] ?? null,
-    //                     'unit' => $variant['inventoryItem']['measurement']['weight']['unit'] ?? null
-    //                 ]
-    //             ];
-    //         }
-    //     }
-
-    //     // Prepare the response data
-    //     $responseData = [
-    //         'title' => $productData['title'],
-    //         'description' => $productData['descriptionHtml'],
-    //         'status' => strtolower($productData['status']),
-    //         'vendor' => $productData['vendor'],
-    //         'media' => $images,
-    //         'variant' => !empty($variants) ? $variants[0] : [],
-    //         'variants' => $variants
-    //     ];
-
-    //     return response()->json($responseData);
-    // }
-
-
     public function getProductDetails(Request $request)
     {
         $shop = $request->query('shop');
@@ -342,28 +270,6 @@ class ProductController extends Controller
 
         callShopifyGraphQL($shop, $shopModel, $updateQuery, ['input' => $productInput]);
 
-        // 2. Handle Media Update
-        $mediaItems = $request->input('media', []);
-        if (!empty($mediaItems)) {
-            $mediaQuery = file_get_contents(resource_path('qraphQl/product-create-media.txt'));
-
-            $mediaInput = array_map(function ($item) {
-                return [
-                    'alt' => $item['alt'] ?? '',
-                    'mediaContentType' => 'IMAGE',
-                    'originalSource' => $item['url']
-                ];
-            }, $mediaItems);
-
-            $mediaVariables = [
-                'productId' => $gidProductId,
-                'media' => $mediaInput
-            ];
-
-            $mediaResponse = callShopifyGraphQL($shop, $shopModel, $mediaQuery, $mediaVariables);
-            return response()->json($mediaResponse['body']);
-        }
-
         return response()->json(['success' => true]);
     }
 
@@ -410,6 +316,56 @@ class ProductController extends Controller
         }
 
         return response()->json(['success' => true, 'data' => $body]);
+    }
+
+
+    public function uploadMedia(Request $request)
+    {
+        $shop = $request->input('shop');
+        $shopModel = User::where('name', $shop)->first();
+        $productId = $request->input('productId');
+        $file = $request->file('image');
+
+        if (!$shopModel || !$file) {
+            return response()->json(['success' => false, 'message' => 'Missing data'], 400);
+        }
+
+        $fileName = time() . '_' . str_replace(' ', '_', trim($file->getClientOriginalName()));
+        $file->move(public_path('uploads'), $fileName);
+        $publicUrl = url("uploads/{$fileName}");
+
+        $gidProductId = str_contains($productId, 'gid://') ? $productId : "gid://shopify/Product/" . $productId;
+        $query = file_get_contents(resource_path('qraphQl/product-create-media.txt'));
+
+        $variables = [
+            'productId' => $gidProductId,
+            'media' => [
+                [
+                    'mediaContentType' => 'IMAGE',
+                    'originalSource' => $publicUrl,
+                    'alt' => $file->getClientOriginalName()
+                ]
+            ]
+        ];
+
+        $response = callShopifyGraphQL($shop, $shopModel, $query, $variables);
+        $body = $response['body']->toArray();
+
+        // 3. Extract the newly created Media object
+        if (!empty($body['data']['productCreateMedia']['media'])) {
+            $newMedia = $body['data']['productCreateMedia']['media'][0];
+            
+            return response()->json([
+                'success' => true,
+                'media' => [
+                    'id' => $newMedia['id'],
+                    'url' => $publicUrl, // we can also get Shopify's CDN URL if we query it back
+                    'alt' => $file->getClientOriginalName()
+                ]
+            ]);
+        }
+
+        return response()->json(['success' => false, 'errors' => $body], 422);
     }
 
     
