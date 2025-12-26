@@ -24,9 +24,14 @@ class HomeController extends Controller
         $response = callShopifyGraphQL($shop, $shopModel, $query);
         $responseBody = $response['body']->toArray();
         $productCount = $responseBody['data']['productsCount']['count'];
+
+        $merchantId = $shopModel->google_merchant_id ?? null;
+        $gmcConnected = $shopModel->google_connected ?? false;
         
         return response()->json([
-            'productCount' => $productCount
+            'productCount' => $productCount,
+            'merchantId' => $merchantId ?? null,
+            'gmcConnected' => $gmcConnected
         ]);
     }
 }

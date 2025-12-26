@@ -7,16 +7,23 @@
 
     <title>Laravel 9 vite with react</title>
 
-    <!-- <meta name="csrf-token" content="{{ csrf_token() }}"> -->
+    <meta name="shopify-api-key" content="{{ env('SHOPIFY_API_KEY') }}">
+
+    <!-- Debug mode - keep for now, remove later -->
     <meta name="shopify-debug" content="web-vitals">
 
     @viteReactRefresh
     @vite('resources/js/app.jsx')
-    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+
+    <meta name="shopify-api-key" content="{{ env('SHOPIFY_API_KEY') }}" />
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    
+
+
 </head>
 
 <body>
     <div id="app"></div>
 </body>
 
-</html>
+</html> 

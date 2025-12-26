@@ -2,6 +2,7 @@ query getProductData($id: ID!) {
   product(id: $id) {
     id
     title
+    handle
     descriptionHtml
     status
     vendor
@@ -27,7 +28,9 @@ query getProductData($id: ID!) {
         barcode
         inventoryPolicy
         image {
-          url
+          id        # ← ADD THIS LINE
+          url       # ← Keep this
+          altText   # ← Optional, but nice to have
         }
         inventoryItem {
           measurement {

@@ -1,11 +1,11 @@
-import { getSessionToken } from "@shopify/app-bridge-utils";
-
-const fetchSessionToken = async ({ app }) => {
+const fetchSessionToken = async () => {
     try {
-        if (!app) {
-            throw new Error("App Bridge instance is required");
+        // In v4, we use the global shopify object
+        if (typeof window.shopify === 'undefined') {
+            throw new Error("Shopify App Bridge script not loaded");
         }
-        const token = await getSessionToken(app);
+        
+        const token = await window.shopify.idToken();
         return token;
     } catch (error) {
         console.error("Error fetching session token:", error);

@@ -6,9 +6,11 @@ import axios from "axios";
 import fetchSessionToken from "../utils/fetchSessionToken";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { Redirect } from "@shopify/app-bridge/actions";
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
     const app = useAppBridge();
+    const navigate = useNavigate();
     const urlParams = new URLSearchParams(window.location.search);
     const shop = urlParams.get("shop");
     
@@ -55,8 +57,20 @@ const Home = () => {
 
             // Redirect the top-level window to Google OAuth
             if (res.data.url) {
-                const redirect = Redirect.create(app);
-                redirect.dispatch(Redirect.Action.REMOTE, res.data.url);
+
+                // This is the App Bridge v4 direct way
+
+                if (window.shopify && window.shopify.config && window.shopify.config.navigation) {
+
+                    window.shopify.config.navigation.redirect(res.data.url);
+
+                } else {
+
+                    // Fallback for local development
+
+                    window.location.href = res.data.url;
+
+                }
             }
         } catch (error) {
             console.error("Failed to get Google Auth URL:", error);
@@ -81,7 +95,10 @@ const Home = () => {
 
                 // If DB shows connected or URL contains merchantId from callback
                 const queryMerchantId = urlParams.get("merchantId");
-                if (res.data.gmcConnected || queryMerchantId) {
+                const isGmcConnected = res.data.gmcConnected || !!queryMerchantId;
+                const merchantId = queryMerchantId || res.data.merchantId;
+                
+                if (isGmcConnected) {
                     setGuideState(prev => ({
                         ...prev,
                         steps: {
@@ -90,7 +107,7 @@ const Home = () => {
                                 ...prev.steps.step2, 
                                 completed: true, 
                                 connected: true, 
-                                merchantId: queryMerchantId || res.data.merchantId 
+                                merchantId: merchantId
                             }
                         }
                     }));

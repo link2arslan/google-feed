@@ -1,19 +1,18 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import {
-    useAppBridge,
-    Provider as AppBridgeProvider,
-} from "@shopify/app-bridge-react";
+// 1. REMOVED Provider/AppBridgeProvider
+import { useAppBridge } from "@shopify/app-bridge-react";
 import {
     ApolloClient,
     InMemoryCache,
     ApolloProvider,
     HttpLink,
 } from "@apollo/client";
+// 2. Note: userLoggedInFetch is still used for Apollo in v4
 import { authenticatedFetch as userLoggedInFetch } from "@shopify/app-bridge-utils";
 import { Frame } from "@shopify/polaris";
+import { onCLS, onFID, onFCP, onLCP, onTTFB } from 'web-vitals';
 
-// Local imports
 import PolarisProvider from "./components/PolarisProvider";
 import ClientRouter from "./components/ClientRouter";
 import AppNavigation from "./components/AppNavigation";
@@ -21,34 +20,38 @@ import Home from "./pages/Home";
 import Products from "./pages/Products";
 import EditProduct from "./pages/EditProduct";
 import BulkEditProducts from "./components/BulkEditProducts";
+import fetchSessionToken from "./utils/fetchSessionToken";
+import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
 
-// --- NEW COMPONENT: Web Vitals Listener ---
-// const WebVitalsLogger = () => {
-//     useEffect(() => {
-//         // App Bridge 4.0+ uses window.shopify
-//         if (window.shopify && window.shopify.webVitals) {
-//             console.log("Web Vitals Listener Registered");
-//             window.shopify.webVitals.onReport((metrics) => {
-//                 const body = JSON.stringify(metrics);
-//                 // Laravel endpoint - ensure this route is in api.php
-//                 const url = "/api/metrics"; 
+const shop = new URL(window.location.href).searchParams.get("shop");
+console.log(shop,'hello dear');
+const WebVitalsLogger = () => {
+    const app = useAppBridge();
+    
+    useEffect(() => {
+        const sendToAnalytics = async (metric) => {
+            try {
+                const token = await fetchSessionToken({ app });
+                await axios.post("/api/my-web-vitals", metric, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                });
+            } catch (error) {
+                console.error("Error sending web vitals:", error);
+            }
+        };
+        
+        onCLS(sendToAnalytics);
+        onFID(sendToAnalytics);
+        onFCP(sendToAnalytics);
+        onLCP(sendToAnalytics);
+        onTTFB(sendToAnalytics);
+    }, [app]);
 
-//                 if (navigator.sendBeacon) {
-//                     navigator.sendBeacon(url, body);
-//                 } else {
-//                     fetch(url, { body, method: "POST", keepalive: true });
-//                 }
-//             });
-//         }
-//     }, []);
-
-//     return null; // This component doesn't render anything
-// };
-
-const appBridgeConfig = {
-    apiKey: import.meta.env.VITE_SHOPIFY_API_KEY,
-    host: new URLSearchParams(window.location.search).get("host"),
-    forceRedirect: true,
+    return null;
 };
 
 function AppBridgeApolloProvider({ children }) {
@@ -70,23 +73,20 @@ const Main = () => {
     return (
         <BrowserRouter>
             <PolarisProvider>
-                <AppBridgeProvider config={appBridgeConfig}>
-                    <AppBridgeApolloProvider>
-                        {/* 1. Add the Logger here */}
-                        {/* <WebVitalsLogger />  */}
-                        
-                        <Frame>
-                            <AppNavigation />
-                            <ClientRouter />
-                            <Routes>
-                                <Route path="/" element={<Home />} />
-                                <Route path="/products" element={<Products />} />
-                                <Route path="/products/:id/edit" element={<EditProduct />} />
-                                <Route path="/products/bulk" element={<BulkEditProducts />} />
-                            </Routes>
-                        </Frame>
-                    </AppBridgeApolloProvider>
-                </AppBridgeProvider>
+                {/* 3. Provider is GONE. Wrapping directly in Apollo & Logic */}
+                <AppBridgeApolloProvider>
+                    <WebVitalsLogger />
+                    <Frame>
+                        <AppNavigation shop={shop} />
+                        {/* <ClientRouter /> */}
+                        <Routes>
+                            <Route path="/" element={<Home />} />
+                            <Route path="/products" element={<Products />} />
+                            <Route path="/products/edit/:id" element={<EditProduct />} />
+                            <Route path="/products/bulk" element={<BulkEditProducts />} />
+                        </Routes>
+                    </Frame>
+                </AppBridgeApolloProvider>
             </PolarisProvider>
         </BrowserRouter>
     );

@@ -15,6 +15,7 @@ import {
     Divider,
     SkeletonBodyText,
     EmptySearchResult,
+    Button,
 } from "@shopify/polaris";
 import {
     AlertTriangleIcon,
@@ -26,12 +27,15 @@ import axios from "axios";
 import fetchSessionToken from "../utils/fetchSessionToken";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { Redirect } from "@shopify/app-bridge/actions";
+import { useNavigate } from "react-router-dom";
 
 const Products = () => {
     const app = useAppBridge();
+    const navigate = useNavigate();
     const shop = new URL(window.location.href).searchParams.get("shop");
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [syncing, setSyncing] = useState(false);
 
     const tabs = [
         { id: "all", content: "All products", panelID: "all-products" },
@@ -124,12 +128,20 @@ const Products = () => {
 
             // Define the navigation function
             const handleRowClick = () => {
-                const redirect = Redirect.create(app);
-                const shopParam = encodeURIComponent(shop);
-                redirect.dispatch(
-                    Redirect.Action.APP,
-                    `/products/${id}/edit?shop=${shopParam}`
-                );
+
+                // This is the App Bridge v4 direct way
+
+                if (window.shopify && window.shopify.config && window.shopify.config.navigation) {
+
+                    window.shopify.config.navigation.navigate(`/products/edit/${id}` + window.location.search);
+
+                } else {
+
+                    // Fallback for local development
+
+                    navigate(`/products/edit/${id}` + window.location.search);
+
+                }
             };
 
             return (
@@ -178,6 +190,34 @@ const Products = () => {
         }
     );
 
+    const handleSyncProducts = async () => {
+        try {
+            setSyncing(true);
+            const sessionToken = await fetchSessionToken({ app });
+            
+            // Get all product IDs
+            const productIds = products.map(product => product.id);
+            
+            // Make API call to sync products
+            await axios.post('/api/products/sync', {
+                product_ids: productIds,
+                shop: shop
+            }, {
+                headers: {
+                    Authorization: `Bearer ${sessionToken}`,
+                    Accept: "application/json",
+                }
+            });
+            
+            // Show success message or handle response as needed
+            console.log('Products synced successfully');
+        } catch (error) {
+            console.error('Error syncing products:', error);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
     return (
         <Page
             fullWidth
@@ -187,6 +227,17 @@ const Products = () => {
         >
             <BlockStack gap="400">
                 <Card padding="0">
+                    <Box padding="400">
+                        <Button 
+                            onClick={handleSyncProducts}
+                            loading={syncing}
+                            disabled={products.length === 0}
+                            variant="primary"
+                        >
+                            Sync products
+                        </Button>
+                    </Box>
+                    <Divider />
                     <Tabs
                         tabs={tabs}
                         selected={selectedTab}
@@ -225,24 +276,39 @@ const Products = () => {
                                             ? "Bulk edit"
                                             : "Edit",
                                     onAction: () => {
-                                        const redirect = Redirect.create(app);
-                                        const shopParam =
-                                            encodeURIComponent(shop);
 
-                                        if (selectedResources.length === 1) {
-                                            // Redirect to single edit page
-                                            redirect.dispatch(
-                                                Redirect.Action.APP,
-                                                `/products/${selectedResources[0]}/edit?shop=${shopParam}`
-                                            );
+                                        // This is the App Bridge v4 direct way
+
+                                        if (window.shopify && window.shopify.config && window.shopify.config.navigation) {
+
+                                            if (selectedResources.length === 1) {
+                                                // Redirect to single edit page
+                                                window.shopify.config.navigation.navigate(`/products/edit/${selectedResources[0]}` + window.location.search);
+                                            } else {
+                                                // Redirect to the Bulk Edit page with comma-separated IDs
+                                                const ids = selectedResources.join(",");
+                                                // Construct the URL with both ids and shop parameters
+                                                const searchParams = new URLSearchParams(window.location.search);
+                                                searchParams.set('ids', ids);
+                                                if (shop) searchParams.set('shop', shop);
+                                                window.shopify.config.navigation.navigate(`/products/bulk?${searchParams.toString()}`);
+                                            }
                                         } else {
-                                            // Redirect to the Bulk Edit page with comma-separated IDs
-                                            const ids =
-                                                selectedResources.join(",");
-                                            redirect.dispatch(
-                                                Redirect.Action.APP,
-                                                `/products/bulk?ids=${ids}&shop=${shop}`
-                                            );
+
+                                            // Fallback for local development
+
+                                            if (selectedResources.length === 1) {
+                                                // Redirect to single edit page
+                                                navigate(`/products/edit/${selectedResources[0]}` + window.location.search);
+                                            } else {
+                                                // Redirect to the Bulk Edit page with comma-separated IDs
+                                                const ids = selectedResources.join(",");
+                                                // Construct the URL with both ids and shop parameters
+                                                const searchParams = new URLSearchParams(window.location.search);
+                                                searchParams.set('ids', ids);
+                                                if (shop) searchParams.set('shop', shop);
+                                                navigate(`/products/bulk?${searchParams.toString()}`);
+                                            }
                                         }
                                     },
                                 },

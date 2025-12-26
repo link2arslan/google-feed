@@ -1,5 +1,5 @@
 query {
-  productsCount(query: "status:ACTIVE") {
+  productsCount(query: "status:ACTIVE", limit: null) {
     count
     precision
   }

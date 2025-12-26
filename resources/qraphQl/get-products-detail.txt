@@ -3,6 +3,7 @@ query getBulkProductData($ids: [ID!]!) {
     ... on Product {
       id
       title
+      handle
       descriptionHtml
       status
       vendor
